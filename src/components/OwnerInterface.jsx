@@ -4,26 +4,25 @@ import './OwnerInterface.css'; // Add this import for the CSS
 function OwnerInterface() {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [sheetId, setSheetId] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [clientLink, setClientLink] = useState('');
+  
+  // Hardcoded SheetDB ID
+  const sheetDbId = 'ie0ep2vssbglg';
 
-  // Load existing slots when sheet ID is entered
+  // Load existing slots when component mounts
   useEffect(() => {
-    if (sheetId) {
-      fetchSlots();
-      // Create the client link with the sheet ID
-      // This assumes you'll deploy the client app at a different URL
-      setClientLink(`https://client-interface-pearl.vercel.app/${sheetId}`);
-    }
-  }, [sheetId]);
+    fetchSlots();
+    // Create the client link with the hardcoded sheet ID
+    setClientLink(`https://client-interface-pearl.vercel.app/${sheetDbId}`);
+  }, []);
 
   // Fetch slots from SheetDB
   const fetchSlots = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://sheetdb.io/api/v1/${sheetId}`);
+      const response = await fetch(`https://sheetdb.io/api/v1/${sheetDbId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch slots');
       }
@@ -44,12 +43,6 @@ function OwnerInterface() {
   // Add new time slot
   const handleAddSlot = async (e) => {
     e.preventDefault();
-    if (!sheetId) {
-      setErrorMessage('Please enter a Sheet ID first');
-      setTimeout(() => setErrorMessage(''), 3000);
-      return;
-    }
-
     setIsLoading(true);
     const date = e.target.date.value;
     const time = e.target.time.value;
@@ -66,7 +59,7 @@ function OwnerInterface() {
     };
 
     try {
-      const response = await fetch(`https://sheetdb.io/api/v1/${sheetId}`, {
+      const response = await fetch(`https://sheetdb.io/api/v1/${sheetDbId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -98,7 +91,7 @@ function OwnerInterface() {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`https://sheetdb.io/api/v1/${sheetId}/id/${slotId}`, {
+      const response = await fetch(`https://sheetdb.io/api/v1/${sheetDbId}/id/${slotId}`, {
         method: 'DELETE'
       });
 
@@ -110,9 +103,6 @@ function OwnerInterface() {
       setAvailableSlots(availableSlots.filter(slot => slot.id !== slotId));
       setSuccessMessage('Slot deleted successfully! Client page automatically updated.');
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      setErrorMessage('Error deleting slot: ' + error.message);
-      setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -121,21 +111,6 @@ function OwnerInterface() {
   return (
     <div className="container">
       <h1 className="title">Appointment Scheduler - Admin Interface</h1>
-      
-      {/* Sheet ID Input */}
-      <div className="section">
-        <label className="label">SheetDB ID</label>
-        <input 
-          type="text" 
-          className="input"
-          value={sheetId}
-          onChange={(e) => setSheetId(e.target.value)}
-          placeholder="Enter your SheetDB ID"
-        />
-        <p className="help-text">
-          Get this from SheetDB after connecting your Google Sheet
-        </p>
-      </div>
       
       {/* Add Time Slot Form */}
       <form onSubmit={handleAddSlot} className="section">
@@ -162,7 +137,7 @@ function OwnerInterface() {
         <button 
           type="submit"
           className="button primary-button"
-          disabled={isLoading || !sheetId}
+          disabled={isLoading}
         >
           {isLoading ? 'Adding...' : 'Add Time Slot'}
         </button>
@@ -175,7 +150,7 @@ function OwnerInterface() {
           <button 
             onClick={fetchSlots} 
             className="button small-button"
-            disabled={isLoading || !sheetId}
+            disabled={isLoading}
           >
             Refresh
           </button>
@@ -196,38 +171,35 @@ function OwnerInterface() {
             ))}
           </ul>
         ) : (
-          <p className="empty-message">No time slots added yet.</p>
+          <p className="empty-message">No time slots available or still loading...</p>
         )}
       </div>
       
       {/* Display Client Link */}
-      {clientLink && (
-        <div className="client-link-section">
-          <p className="link-title">Your client booking link:</p>
-          <div className="link-container">
-            <input 
-              type="text" 
-              value={clientLink} 
-              className="link-input" 
-              readOnly 
-            />
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(clientLink);
-                setSuccessMessage('Link copied to clipboard!');
-                setTimeout(() => setSuccessMessage(''), 3000);
-              }}
-              className="copy-button"
-            >
-              Copy
-            </button>
-          </div>
-          <p className="help-text">
-            Share this link with your clients to let them book appointments.
-            You'll need to replace "your-client-app-url.com" with your actual client app URL.
-          </p>
+      <div className="client-link-section">
+        <p className="link-title">Your client booking link:</p>
+        <div className="link-container">
+          <input 
+            type="text" 
+            value={clientLink} 
+            className="link-input" 
+            readOnly 
+          />
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(clientLink);
+              setSuccessMessage('Link copied to clipboard!');
+              setTimeout(() => setSuccessMessage(''), 3000);
+            }}
+            className="copy-button"
+          >
+            Copy
+          </button>
         </div>
-      )}
+        <p className="help-text">
+          Share this link with your clients to let them book appointments.
+        </p>
+      </div>
       
       {/* Status Messages */}
       {errorMessage && (
