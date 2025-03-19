@@ -9,7 +9,21 @@ function OwnerInterface() {
   const [clientLink, setClientLink] = useState('');
   
   // Hardcoded SheetDB ID
-  const sheetDbId = 'ie0ep2vssbglg';
+  const sheetDbId = 'icpu0frqm3el7';
+
+  // Format date to "Month Name, Day of Week, Year" (e.g., "March 21, Thursday, 2025")
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    const options = { 
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    };
+    
+    return date.toLocaleDateString('en-US', options);
+  };
 
   // Load existing slots when component mounts
   useEffect(() => {
@@ -55,7 +69,8 @@ function OwnerInterface() {
       status: 'Available',
       client_name: '',
       client_email: '',
-      booking_date: ''
+      booking_date: '',
+      zoom_option:'',
     };
 
     try {
@@ -108,9 +123,21 @@ function OwnerInterface() {
     }
   };
 
+  // Format time to 12-hour format with AM/PM
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const formattedHour = hour % 12 || 12;
+    
+    return `${formattedHour}:${minutes} ${ampm}`;
+  };
+
   return (
     <div className="container">
-      <h1 className="title">Appointment Scheduler - Admin Interface</h1>
+      <h1 className="title">Enter dates that you are availabled</h1>
       
       {/* Add Time Slot Form */}
       <form onSubmit={handleAddSlot} className="section">
@@ -160,7 +187,7 @@ function OwnerInterface() {
           <ul className="slot-list">
             {availableSlots.map(slot => (
               <li key={slot.id} className="slot-item">
-                <span>{slot.date} at {slot.time}</span>
+                <span>{formatDate(slot.date)} at {formatTime(slot.time)}</span>
                 <button 
                   onClick={() => handleDeleteSlot(slot.id)}
                   className="delete-button"
@@ -177,7 +204,7 @@ function OwnerInterface() {
       
       {/* Display Client Link */}
       <div className="client-link-section">
-        <p className="link-title">Your client booking link:</p>
+        <p className="link-title">Your student booking link:</p>
         <div className="link-container">
           <input 
             type="text" 
