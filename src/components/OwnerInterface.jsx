@@ -9,7 +9,7 @@ function OwnerInterface() {
   const [clientLink, setClientLink] = useState('');
   
   // Hardcoded SheetDB ID
-  const sheetDbId = 'icpu0frqm3el7';
+  const sheetDbId = 'l9epv40hw84pa';
 
   // Format date to "Month Name, Day of Week, Year" (e.g., "March 21, Thursday, 2025")
   const formatDate = (dateString) => {
@@ -19,7 +19,8 @@ function OwnerInterface() {
     const options = { 
       month: 'long',
       day: 'numeric',
-      weekday: 'long'
+      weekday: 'long',
+
     };
     
     return date.toLocaleDateString('en-US', options);
@@ -137,7 +138,7 @@ function OwnerInterface() {
 
   return (
     <div className="container">
-      <h1 className="title">Enter dates that you are availabled</h1>
+      <h1 className="title">Enter dates that you are available</h1>
       
       {/* Add Time Slot Form */}
       <form onSubmit={handleAddSlot} className="section">
