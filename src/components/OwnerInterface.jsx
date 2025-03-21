@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import './OwnerInterface.css'; // Add this import for the CSS
+import './OwnerInterface.css';
+
+// Set the base URL for your backend API (adjust port/domain as needed)
+const API_BASE_URL = 'http://localhost:3000/api';
 
 function OwnerInterface() {
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -7,44 +10,47 @@ function OwnerInterface() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [clientLink, setClientLink] = useState('');
-  
-  // Hardcoded SheetDB ID
-  const sheetDbId = 'l9epv40hw84pa';
 
-  // Format date to "Month Name, Day of Week, Year" (e.g., "March 21, Thursday, 2025")
+  // Your spreadsheet details for display or linking purposes
+  const spreadsheetId = '1NWWqxGX7cMu0fqZ9o8GXCQBE6e8E97wzql8T6Pdito8';
+  const sheetName = "Guadalupes Scholars Interview"; // For informational use
+
+  // On mount, fetch available slots and set up client link.
+  useEffect(() => {
+    fetchSlots();
+    // Example client link (update to your actual client interface URL)
+    setClientLink(`https://client-interface-pearl.vercel.app/${spreadsheetId}`);
+  }, []);
+
+  // Helper function to format dates
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    
     const date = new Date(dateString);
-    const options = { 
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-
-    };
-    
+    const options = { month: 'long', day: 'numeric', weekday: 'long' };
     return date.toLocaleDateString('en-US', options);
   };
 
-  // Load existing slots when component mounts
-  useEffect(() => {
-    fetchSlots();
-    // Create the client link with the hardcoded sheet ID
-    setClientLink(`https://client-interface-pearl.vercel.app/${sheetDbId}`);
-  }, []);
+  // Helper function to format time to 12-hour format
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const formattedHour = hour % 12 || 12;
+    return `${formattedHour}:${minutes} ${ampm}`;
+  };
 
-  // Fetch slots from SheetDB
+  // Fetch available slots from the backend
   const fetchSlots = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://sheetdb.io/api/v1/${sheetDbId}`);
+      const response = await fetch(`${API_BASE_URL}/slots`);
       if (!response.ok) {
         throw new Error('Failed to fetch slots');
       }
       const data = await response.json();
-      // Filter to only show slots with status "Available"
-      const availableSlots = data.filter(slot => slot.status === 'Available');
-      setAvailableSlots(availableSlots);
+      // Assume your backend returns only available slots
+      setAvailableSlots(data);
       setSuccessMessage('Slots loaded successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
@@ -55,39 +61,28 @@ function OwnerInterface() {
     }
   };
 
-  // Add new time slot
+  // Add new time slot using your backend API
   const handleAddSlot = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     const date = e.target.date.value;
     const time = e.target.time.value;
-    const slotId = `slot_${Date.now()}`;
+    // Prepare new slot data – the backend can generate a unique slot ID
+    const newSlot = { date, time, status: 'Available' };
     
-    const newSlot = {
-      id: slotId,
-      date: date,
-      time: time,
-      status: 'Available',
-      client_name: '',
-      client_email: '',
-      booking_date: '',
-      zoom_option:'',
-    };
-
     try {
-      const response = await fetch(`https://sheetdb.io/api/v1/${sheetDbId}`, {
+      const response = await fetch(`${API_BASE_URL}/add-slot`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ data: newSlot })
+        body: JSON.stringify(newSlot)
       });
-
       if (!response.ok) {
         throw new Error('Failed to add slot');
       }
-
-      setAvailableSlots([...availableSlots, newSlot]);
+      // Re-fetch slots after adding a new one
+      await fetchSlots();
       setSuccessMessage('Slot added successfully! Client page automatically updated.');
       setTimeout(() => setSuccessMessage(''), 3000);
       e.target.reset();
@@ -99,7 +94,7 @@ function OwnerInterface() {
     }
   };
 
-  // Delete a time slot
+  // Delete a time slot using your backend API
   const handleDeleteSlot = async (slotId) => {
     if (!window.confirm('Are you sure you want to delete this time slot?')) {
       return;
@@ -107,33 +102,22 @@ function OwnerInterface() {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`https://sheetdb.io/api/v1/${sheetDbId}/id/${slotId}`, {
+      const response = await fetch(`${API_BASE_URL}/delete-slot/${slotId}`, {
         method: 'DELETE'
       });
-
       if (!response.ok) {
         throw new Error('Failed to delete slot');
       }
-
-      // Update the local state after successful deletion
-      setAvailableSlots(availableSlots.filter(slot => slot.id !== slotId));
+      // Refresh the slot list after deletion
+      await fetchSlots();
       setSuccessMessage('Slot deleted successfully! Client page automatically updated.');
       setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      setErrorMessage('Error deleting slot: ' + error.message);
+      setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Format time to 12-hour format with AM/PM
-  const formatTime = (timeString) => {
-    if (!timeString) return '';
-    
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours, 10);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const formattedHour = hour % 12 || 12;
-    
-    return `${formattedHour}:${minutes} ${ampm}`;
   };
 
   return (
@@ -146,25 +130,23 @@ function OwnerInterface() {
           <label className="label">Date</label>
           <input 
             type="date" 
-            name="date"
-            className="input"
-            required
+            name="date" 
+            className="input" 
+            required 
           />
         </div>
-        
         <div className="form-group">
           <label className="label">Time</label>
           <input 
             type="time" 
-            name="time"
-            className="input"
-            required
+            name="time" 
+            className="input" 
+            required 
           />
         </div>
-        
         <button 
-          type="submit"
-          className="button primary-button"
+          type="submit" 
+          className="button primary-button" 
           disabled={isLoading}
         >
           {isLoading ? 'Adding...' : 'Add Time Slot'}
@@ -177,20 +159,19 @@ function OwnerInterface() {
           <h2 className="subtitle">Available Time Slots</h2>
           <button 
             onClick={fetchSlots} 
-            className="button small-button"
+            className="button small-button" 
             disabled={isLoading}
           >
             Refresh
           </button>
         </div>
-        
         {availableSlots.length > 0 ? (
           <ul className="slot-list">
             {availableSlots.map(slot => (
               <li key={slot.id} className="slot-item">
                 <span>{formatDate(slot.date)} at {formatTime(slot.time)}</span>
                 <button 
-                  onClick={() => handleDeleteSlot(slot.id)}
+                  onClick={() => handleDeleteSlot(slot.id)} 
                   className="delete-button"
                 >
                   Delete
@@ -230,17 +211,8 @@ function OwnerInterface() {
       </div>
       
       {/* Status Messages */}
-      {errorMessage && (
-        <div className="error-message">
-          {errorMessage}
-        </div>
-      )}
-      
-      {successMessage && (
-        <div className="success-message">
-          {successMessage}
-        </div>
-      )}
+      {errorMessage && <div className="error-message">{errorMessage}</div>}
+      {successMessage && <div className="success-message">{successMessage}</div>}
     </div>
   );
 }
